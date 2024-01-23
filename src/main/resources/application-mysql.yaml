@@ -1,0 +1,13 @@
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/users_crud_api?useTimezone-true&serverTimezone=UTC
+    username: user
+    password: pass
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create
+    show-sql: false
