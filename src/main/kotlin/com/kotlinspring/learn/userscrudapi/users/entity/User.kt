@@ -12,23 +12,23 @@ data class User (
     var id: UUID ?,
 
     @Column(name = "nick", nullable = true, length = 32)
-    var nick: String ?,
+    val nick: String ?,
 
     @Column(name = "name", nullable = false, length = 255, unique = true)
-    var fullName: String,
+    val fullName: String,
 
     @Column(name = "birth_date", nullable = false)
-    var birthDate: LocalDateTime,
+    val birthDate: LocalDateTime,
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name="user_stack",
             joinColumns = [JoinColumn(name = "user_id")],
     )
-    @Column
-    var stack: List<String>?
+    @Column(length = 32)
+    val stack: List<String>?
 ) {
     override fun toString(): String {
-        return "UserEntity(id=$id, nick=$nick, fullName='$fullName', birthDate=$birthDate, stack=$stack)"
+        return "UserEntity(id=$id, nick=$nick, fullName=$fullName, birthDate=$birthDate, stack=$stack)"
     }
 }

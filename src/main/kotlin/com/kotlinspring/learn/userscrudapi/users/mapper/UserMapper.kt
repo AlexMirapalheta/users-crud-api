@@ -1,12 +1,11 @@
 package com.kotlinspring.learn.userscrudapi.users.mapper
 
-
 import com.kotlinspring.learn.userscrudapi.users.dto.UserDTO
 import com.kotlinspring.learn.userscrudapi.users.entity.User
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import java.util.UUID
 
-@Service
+@Component
 class UserMapper {
 
     fun parseToEntity(userDto: UserDTO, id: UUID ? = null): User {
