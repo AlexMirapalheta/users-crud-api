@@ -21,7 +21,7 @@ class UserStackItemValidator : ConstraintValidator<UserStackItem, List<String>> 
     private val size: Int = 32
 
     override fun isValid(item: List<String>?, p1: ConstraintValidatorContext?): Boolean {
-        return item == null || item.all { it.isNotBlank() && it.length in 0..size }
+        return item == null || item.all { it.isNotBlank() && it.length <= size }
     }
 
 }
