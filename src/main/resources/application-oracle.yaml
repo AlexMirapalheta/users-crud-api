@@ -7,9 +7,13 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:system}
     password: ${SPRING_DATASOURCE_PASSWORD:123456}
   jpa:
+    open-in-view: true
     hibernate:
       ddl-auto: create
-    show-sql: false
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
 #  flyway:
 #    locations: classpath:db/migration-oracle
 #    baseline-on-migrate: true
