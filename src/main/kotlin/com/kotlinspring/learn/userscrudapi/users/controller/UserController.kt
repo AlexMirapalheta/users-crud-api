@@ -5,9 +5,9 @@ import com.kotlinspring.learn.userscrudapi.users.service.UserService
 import java.util.UUID
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Page
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -43,6 +43,7 @@ class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
     fun create(
             @Valid @RequestBody userDto: UserDTO
     ): UserDTO {
@@ -50,6 +51,7 @@ class UserController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     fun update(
             @Valid @RequestBody userDto: UserDTO,
             @Valid @PathVariable(value = "id") id: UUID
@@ -58,10 +60,11 @@ class UserController {
     }
 
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
     fun delete(
             @Valid @PathVariable(value = "id") id: UUID
-    ): ResponseEntity<Nothing> {
+    ) {
         service.delete(id)
-        return ResponseEntity.noContent().build()
     }
 }
