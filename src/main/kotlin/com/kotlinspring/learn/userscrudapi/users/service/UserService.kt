@@ -11,17 +11,15 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import java.util.*
 import java.util.logging.Logger
+import kotlin.collections.ArrayList
 
 
 @Service
-class UserService {
+class UserService(
+    private var repository: UserRepository
+) {
 
-    @Autowired
-    private lateinit var repository: UserRepository
-
-    @Autowired
-    private lateinit var mapper: UserMapper
-
+    private var mapper: UserMapper = UserMapper()
     private val logger = Logger.getLogger(UserService::class.java.name)
 
     fun find(page: Int = 0, size: Int = 50): Page<UserDTO> {
@@ -47,6 +45,7 @@ class UserService {
 
     fun create(user: UserDTO): UserDTO {
         logger.info("Creating $user")
+
         val entity: User = repository.save(mapper.parseToEntity(user))
         return mapper.parseToDTO(entity)
     }
@@ -55,13 +54,14 @@ class UserService {
         logger.info("Updating $userDto")
 
         val user: User = repository.findById(id).orElseThrow { UserNotFoundException() }
-
-        user.nick = userDto.nick
-        user.fullName = userDto.name
-        user.birthDate = userDto.birthDate
-        user.stack = userDto.stack
-
-        val userUpdated: User = repository.save(user)
+        val userUpdated: User = repository.save(
+            user.copy(
+                nick = userDto.nick,
+                fullName = userDto.name,
+                birthDate = userDto.birthDate,
+                stack = userDto.stack,
+            )
+        )
 
         return mapper.parseToDTO(userUpdated)
     }
