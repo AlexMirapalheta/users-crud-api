@@ -3,8 +3,6 @@ package com.kotlinspring.learn.userscrudapi.unit.users.entity
 import com.kotlinspring.learn.userscrudapi.mock.UserMock
 import com.kotlinspring.learn.userscrudapi.users.entity.User
 import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class UserTest {

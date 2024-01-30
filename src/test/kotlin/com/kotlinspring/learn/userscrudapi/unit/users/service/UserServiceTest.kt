@@ -5,8 +5,6 @@ import com.kotlinspring.learn.userscrudapi.users.dto.UserDTO
 import com.kotlinspring.learn.userscrudapi.users.entity.User
 import com.kotlinspring.learn.userscrudapi.users.repository.UserRepository
 import com.kotlinspring.learn.userscrudapi.users.service.UserService
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
