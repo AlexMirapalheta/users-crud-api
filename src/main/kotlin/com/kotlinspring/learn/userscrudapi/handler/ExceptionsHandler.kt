@@ -10,11 +10,12 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.bind.MissingPathVariableException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import java.time.LocalDateTime
 
 @ControllerAdvice
@@ -24,7 +25,9 @@ class ExceptionsHandler {
         private val logger: Logger = LoggerFactory.getLogger(ExceptionHandler::class.java)
     }
     @ExceptionHandler(Exception::class)
-    fun handleAllExceptions (ex: Exception, request: WebRequest): ResponseEntity<ExceptionResponse> {
+    fun handleAllExceptions (
+        ex: Exception, request: WebRequest
+    ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
             LocalDateTime.now(),
             ex.message,
@@ -37,7 +40,9 @@ class ExceptionsHandler {
     }
 
     @ExceptionHandler(UserNotFoundException::class)
-    fun handleUserNotFoundExceptions (ex: Exception, request: WebRequest): ResponseEntity<ExceptionResponse> {
+    fun handleUserNotFoundExceptions (
+        ex: Exception, request: WebRequest
+    ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
             LocalDateTime.now(),
             ex.message,
@@ -50,11 +55,13 @@ class ExceptionsHandler {
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException::class)
-    fun handleValidationException (ex: MethodArgumentTypeMismatchException, request: WebRequest): ResponseEntity<ExceptionResponse> {
+    fun handleValidationException (
+        ex: MethodArgumentTypeMismatchException, request: WebRequest
+    ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
             LocalDateTime.now(),
-            ex.message,
-            request.getDescription(false)
+            "Method Argument Type Mismatch",
+            ex.message ?: request.getDescription(false)
         )
 
         logger.info("MethodArgumentTypeMismatchException [${HttpStatus.BAD_REQUEST}] $ex")
@@ -63,9 +70,8 @@ class ExceptionsHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
-    fun handleMethodArguentNotValidException(
-        req: HttpServletRequest,
-        ex: MethodArgumentNotValidException
+    fun handleMethodArgumentNotValidException(
+        req: HttpServletRequest, ex: MethodArgumentNotValidException
     ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
                 LocalDateTime.now(),
@@ -73,17 +79,15 @@ class ExceptionsHandler {
                 (ex.bindingResult.allErrors.map { it.defaultMessage ?: "" }).reduce { acc, s -> "$acc; $s" }
         )
 
-        logger.info("handleMethodArguentNotValidException [${HttpStatus.BAD_REQUEST}] $ex")
+        logger.info("handleMethodArgumentNotValidException [${HttpStatus.BAD_REQUEST}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.BAD_REQUEST)
     }
 
     @ExceptionHandler(DataIntegrityViolationException::class)
     fun handleDataIntegrityViolationException(
-        ex: DataIntegrityViolationException,
-        request: WebRequest
-    ): ResponseEntity<ExceptionResponse>
-    {
+        ex: DataIntegrityViolationException, request: WebRequest
+    ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
             LocalDateTime.now(),
             "Exclusive Data Restriction",
@@ -97,19 +101,47 @@ class ExceptionsHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException::class)
     fun handleHttpMessageNotReadableException(
-        ex: HttpMessageNotReadableException,
-        request: WebRequest
-    ): ResponseEntity<ExceptionResponse>
-    {
+        ex: HttpMessageNotReadableException, request: WebRequest
+    ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
             LocalDateTime.now(),
             "Http Message Not Readable",
-            ex.message ?: ""
+            ex.message ?: request.getDescription(false)
         )
 
         logger.info("HttpMessageNotReadableException [${HttpStatus.BAD_REQUEST}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.BAD_REQUEST)
+    }
+
+    @ExceptionHandler(MissingPathVariableException::class)
+    fun handleMissingPathVariableException(
+        ex: MissingPathVariableException, request: WebRequest
+    ): ResponseEntity<ExceptionResponse> {
+        val exceptionResponse = ExceptionResponse(
+            LocalDateTime.now(),
+            "Missing Path Variable",
+            ex.message
+        )
+
+        logger.info("MissingPathVariableException [${HttpStatus.BAD_REQUEST}] $ex")
+
+        return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.BAD_REQUEST)
+    }
+
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun handleNoResourceFoundException(
+        ex: NoResourceFoundException, request: WebRequest
+    ): ResponseEntity<ExceptionResponse> {
+        val exceptionResponse = ExceptionResponse(
+            LocalDateTime.now(),
+            "No Resource Found",
+            ex.message ?: request.getDescription(false)
+        )
+
+        logger.info("MissingPathVariableException [${HttpStatus.NOT_FOUND}] $ex")
+
+        return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.NOT_FOUND)
     }
 
 }

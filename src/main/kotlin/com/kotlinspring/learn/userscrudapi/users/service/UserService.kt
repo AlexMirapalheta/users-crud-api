@@ -5,14 +5,11 @@ import com.kotlinspring.learn.userscrudapi.users.entity.User
 import com.kotlinspring.learn.userscrudapi.users.exception.UserNotFoundException
 import com.kotlinspring.learn.userscrudapi.users.mapper.UserMapper
 import com.kotlinspring.learn.userscrudapi.users.repository.UserRepository
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import java.util.*
 import java.util.logging.Logger
-import kotlin.collections.ArrayList
-
 
 @Service
 class UserService(

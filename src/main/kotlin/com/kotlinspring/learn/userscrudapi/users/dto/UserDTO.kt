@@ -25,6 +25,6 @@ data class UserDTO (
     val birthDate: LocalDateTime,
 
     @JsonProperty(required = false)
-    @field:UserStackItem()
+    @field:UserStackItem
     val stack: List<String> ? = null
-) {}
+)
