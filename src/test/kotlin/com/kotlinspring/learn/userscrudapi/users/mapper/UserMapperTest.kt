@@ -1,9 +1,8 @@
-package com.kotlinspring.learn.userscrudapi.unit.users.mapper
+package com.kotlinspring.learn.userscrudapi.users.mapper
 
 import com.kotlinspring.learn.userscrudapi.mock.UserMock
 import com.kotlinspring.learn.userscrudapi.users.dto.UserDTO
 import com.kotlinspring.learn.userscrudapi.users.entity.User
-import com.kotlinspring.learn.userscrudapi.users.mapper.UserMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test

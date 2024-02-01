@@ -1,7 +1,6 @@
-package com.kotlinspring.learn.userscrudapi.unit.users.entity
+package com.kotlinspring.learn.userscrudapi.users.entity
 
 import com.kotlinspring.learn.userscrudapi.mock.UserMock
-import com.kotlinspring.learn.userscrudapi.users.entity.User
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 

@@ -1,4 +1,4 @@
-package com.kotlinspring.learn.userscrudapi.integration.users.controller
+package com.kotlinspring.learn.userscrudapi.users.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.jayway.jsonpath.JsonPath

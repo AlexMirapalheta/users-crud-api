@@ -1,10 +1,9 @@
-package com.kotlinspring.learn.userscrudapi.unit.users.service
+package com.kotlinspring.learn.userscrudapi.users.service
 
 import com.kotlinspring.learn.userscrudapi.mock.UserMock
 import com.kotlinspring.learn.userscrudapi.users.dto.UserDTO
 import com.kotlinspring.learn.userscrudapi.users.entity.User
 import com.kotlinspring.learn.userscrudapi.users.repository.UserRepository
-import com.kotlinspring.learn.userscrudapi.users.service.UserService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName

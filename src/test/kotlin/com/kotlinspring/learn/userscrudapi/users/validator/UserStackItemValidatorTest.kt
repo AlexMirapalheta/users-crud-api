@@ -1,6 +1,5 @@
-package com.kotlinspring.learn.userscrudapi.unit.users.validator
+package com.kotlinspring.learn.userscrudapi.users.validator
 
-import com.kotlinspring.learn.userscrudapi.users.validator.UserStackItemValidator
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 
