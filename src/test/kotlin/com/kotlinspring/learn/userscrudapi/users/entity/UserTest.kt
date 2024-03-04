@@ -13,7 +13,7 @@ class UserTest {
     fun testToString() {
         val result: String = userEntity.toString()
 
-        val pattern = "^User.*id=${userEntity.id}.*nick=${userEntity.nick}.*fullName=${userEntity.fullName}.*birthDate=${userEntity.birthDate}.*stack=.${userEntity.stack}.*$"
+        val pattern = "^User.*id=${userEntity.id}.*nick=${userEntity.nick}.*name=${userEntity.name}.*birthDate=${userEntity.birthDate}.*stack=.${userEntity.stack}.*$"
         pattern.replace("[","")
         pattern.replace("]","")
         val regex = Regex(pattern)

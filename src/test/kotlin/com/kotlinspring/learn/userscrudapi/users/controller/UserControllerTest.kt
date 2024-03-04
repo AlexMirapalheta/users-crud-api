@@ -3,6 +3,9 @@ package com.kotlinspring.learn.userscrudapi.users.controller
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.jayway.jsonpath.JsonPath
 import com.kotlinspring.learn.userscrudapi.mock.UserMock
+import com.kotlinspring.learn.userscrudapi.users.dto.StackRequest
+import com.kotlinspring.learn.userscrudapi.users.repository.UserRepository
+import org.hamcrest.Matchers.containsInAnyOrder
 import org.junit.jupiter.api.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -15,6 +18,7 @@ import org.springframework.test.web.servlet.*
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.util.*
+import kotlin.collections.ArrayList
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -22,6 +26,9 @@ class UserControllerTest {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
+
+    @Autowired
+    private lateinit var userRepository: UserRepository
 
     @Autowired
     private lateinit var objectMapper: ObjectMapper
@@ -41,10 +48,13 @@ class UserControllerTest {
     @Nested
     inner class CreateUser {
         @Test
-        @DisplayName("GIVEN: valid complete user payload; WHEN: Post /users; THEN: return status 201 and User with ID")
+        @DisplayName("GIVEN: valid complete user request; WHEN: Post /users; THEN: return status 201 and User with ID")
         fun validCompletePayloadTest() {
-            val payload = userMock.createUserPayload()
+            val payload = userMock.createUserRequest()
 
+            /*
+            * TODO Solução Preguiçosa! Procurar uma forma melhor de validar os elementos da Stack            *
+            */
             mockMvc.perform(
                 post("/$uri")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -55,14 +65,19 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id").isNotEmpty)
                 .andExpect(jsonPath("$.name").value(payload.name))
                 .andExpect(jsonPath("$.nick").value(payload.nick))
-                .andExpect(jsonPath("$.birth_date").value(payload.birth_date))
-                .andExpect(jsonPath("$.stack").value(payload.stack))
+                .andExpect(jsonPath("$.birth_date").value(payload.birthDate.toString()))
+                .andExpect(jsonPath("$.stack[*].stack").value(
+                    containsInAnyOrder(
+                        payload.stack!!.elementAt(0).stack,
+                        payload.stack!!.elementAt(1).stack)
+                ))
+
         }
 
         @Test
-        @DisplayName("GIVEN: valid (null optionals) user payload; WHEN: Post /users; THEN: return status 201 and User with ID")
+        @DisplayName("GIVEN: valid (null optionals) user request; WHEN: Post /users; THEN: return status 201 and User with ID")
         fun validNullOptionalsPayloadTest() {
-            val payload = userMock.createUserPayload().copy(nick = null, stack = null)
+            val payload = userMock.createUserRequest().copy(nick = null, stack = null)
 
             mockMvc.perform(
                 post("/$uri")
@@ -74,8 +89,8 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id").isNotEmpty)
                 .andExpect(jsonPath("$.name").value(payload.name))
                 .andExpect(jsonPath("$.nick").value(null))
-                .andExpect(jsonPath("$.birth_date").value(payload.birth_date))
-                .andExpect(jsonPath("$.stack").value(null))
+                .andExpect(jsonPath("$.birth_date").value(payload.birthDate.toString()))
+                .andExpect(jsonPath("$.stack").isArray)
         }
 
         @ParameterizedTest
@@ -83,9 +98,9 @@ class UserControllerTest {
             "",
             "That'sStringContainMoreThan32Characters"
         ])
-        @DisplayName("GIVEN: invalid nick; WHEN: Post /users; THEN: return status 400 and error_message Invalid Payload")
+        @DisplayName("GIVEN: invalid nick; WHEN: Post /users; THEN: return status 400 and code Invalid Payload")
         fun invalidNickPayloadTest(nick: String) {
-            val payload = userMock.createUserPayload().copy(nick = nick)
+            val payload = userMock.createUserRequest().copy(nick = nick)
 
             mockMvc.perform(
                 post("/$uri")
@@ -94,7 +109,7 @@ class UserControllerTest {
             )
                 .andExpect(status().isBadRequest)
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error_message").value("Invalid Payload"))
+                .andExpect(jsonPath("$.error_messages[0].code").value("Invalid Payload"))
         }
 
         @ParameterizedTest
@@ -105,9 +120,9 @@ class UserControllerTest {
                     "a_Maximum_Allowed_Size_of_255_Characters_Therefore,_To_Meet_the_Premise_of_the_Test,_The_Total_"+
                     "Number_of_Letters_in_This_Sentence_Exceeds_the_Previously_Quoted_Value"
         ])
-        @DisplayName("GIVEN: invalid name; WHEN: Post /users; THEN: return status 400 and error_message Invalid Payload")
+        @DisplayName("GIVEN: invalid name; WHEN: Post /users; THEN: return status 400 and code Invalid Payload")
         fun invalidNamePayloadTest(name: String) {
-            val payload = userMock.createUserPayload().copy(name = name)
+            val payload = userMock.createUserRequest().copy(name = name)
 
             mockMvc.perform(
                 post("/$uri")
@@ -116,13 +131,13 @@ class UserControllerTest {
             )
                 .andExpect(status().isBadRequest)
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error_message").value("Invalid Payload"))
+                .andExpect(jsonPath("$.error_messages[0].code").value("Invalid Payload"))
         }
 
         @Test
-        @DisplayName("GIVEN: existing name; WHEN: Post /users; THEN: return status 400 and error_message Exclusive Data Restriction")
+        @DisplayName("GIVEN: existing name; WHEN: Post /users; THEN: return status 400 and code Exclusive Data Restriction")
         fun existingNamePayloadTest() {
-            val payload = userMock.createUserPayload()
+            val payload = userMock.createUserRequest()
 
             mockMvc.perform(
                 post("/$uri")
@@ -137,7 +152,7 @@ class UserControllerTest {
             )
                 .andExpect(status().isBadRequest)
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error_message").value("Exclusive Data Restriction"))
+                .andExpect(jsonPath("$.error_messages[0].code").value("Data Integrity Violation"))
         }
 
         @ParameterizedTest
@@ -151,7 +166,8 @@ class UserControllerTest {
         ])
         @DisplayName("GIVEN: invalid birth_date; WHEN: Post /users; THEN: return status 400 and error_message Http Message Not Readable")
         fun invalidBirthDatePayloadTest(birthDate: String) {
-            val payload = userMock.createUserPayload().copy(birth_date = birthDate)
+            val payload = userMock.createUserPayload()
+                .copy(birthDate = birthDate)
 
             mockMvc.perform(
                 post("/$uri")
@@ -160,7 +176,7 @@ class UserControllerTest {
             )
                 .andExpect(status().isBadRequest)
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error_message").value("Http Message Not Readable"))
+                .andExpect(jsonPath("$.error_messages[0].code").value("Http Message Not Readable"))
         }
 
         @ParameterizedTest
@@ -169,10 +185,15 @@ class UserControllerTest {
             " ",
             "That'sStringContainMoreThan32Characters"
         ])
-        @DisplayName("GIVEN: invalid stack item; WHEN: Post /users; THEN: return status 400 and error_message Invalid Payload")
+        @DisplayName("GIVEN: invalid stack item; WHEN: Post /users; THEN: return status 400 and code Invalid Payload")
         fun invalidStackItemPayloadTest(stackItem: String) {
-            val stack: List<String> = listOf(stackItem)
-            val payload = userMock.createUserPayload().copy(stack = stack)
+            val stack: MutableSet<StackRequest> = mutableSetOf(
+                StackRequest(
+                    stack = stackItem,
+                    score = userMock.getRandomInt(userMock.maxLevel)
+                )
+            )
+            val payload = userMock.createUserRequest().copy(stack = stack)
 
             mockMvc.perform(
                 post("/$uri")
@@ -181,7 +202,7 @@ class UserControllerTest {
             )
                 .andExpect(status().isBadRequest)
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error_message").value("Invalid Payload"))
+                .andExpect(jsonPath("$.error_messages[0].code").value("Invalid Payload"))
         }
     }
 
@@ -190,21 +211,25 @@ class UserControllerTest {
         @Test
         @DisplayName("GIVEN: valid ID and update payload; WHEN: Put /users/{id}; THEN: return status 200 and new data")
         fun validPayloadTest() {
-            val existingUser = userMock.createUserPayload()
-            val createResponse = mockMvc.perform(
+            /*
+            * TODO Solução Preguiçosa. Melhorar Isso!
+            */
+
+            val newUser = userMock.createUserRequest()
+            val createdUserAsString = mockMvc.perform(
                 post("/$uri")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(existingUser))
+                    .content(objectMapper.writeValueAsString(newUser))
             ).andReturn().response.contentAsString
-            existingUser.id = JsonPath.parse(createResponse).read("$.id")
+            val newUserId = JsonPath.parse(createdUserAsString).read<String>("$.id")
 
-            val updatePayload = userMock.createUserPayload()
+            val updatePayload = userMock.createUserRequest()
 
-            mockMvc.put("/$uri/{id}", existingUser.id) {
+            mockMvc.put("/$uri/{id}", newUserId) {
                 content = objectMapper.writeValueAsString(
-                    existingUser.copy(
+                    newUser.copy(
                         nick = updatePayload.nick,
-                        birth_date = updatePayload.birth_date,
+                        birthDate = updatePayload.birthDate,
                         stack = updatePayload.stack
                     )
                 )
@@ -212,18 +237,23 @@ class UserControllerTest {
             }.andExpectAll {
                 status { isOk() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.id") { value(existingUser.id) }
-                jsonPath("$.name") { value(existingUser.name) }
+                jsonPath("$.id") { value(newUserId) }
+                jsonPath("$.name") { value(newUser.name) }
                 jsonPath("$.nick") { value(updatePayload.nick) }
-                jsonPath("$.birth_date") { value(updatePayload.birth_date) }
-                jsonPath("$.stack") { value(updatePayload.stack) }
+                jsonPath("$.birth_date") { value(updatePayload.birthDate.toString()) }
+                jsonPath("$.stack[*].stack") { value(
+                    containsInAnyOrder(
+                        updatePayload.stack!!.elementAt(0).stack,
+                        updatePayload.stack!!.elementAt(1).stack
+                    )
+                )}
             }
         }
 
         @Test
         @DisplayName("GIVEN: invalid ID; WHEN: Put /users{id}; THEN: return status 404 and message error User Not Found")
         fun invalidIDPayloadTest() {
-            val updatePayload = userMock.createUserPayload()
+            val updatePayload = userMock.createUserRequest()
             val id: String = UUID.randomUUID().toString()
 
             mockMvc.put("/$uri/{id}", id)
@@ -234,7 +264,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isNotFound() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("User Not Found") }
+                jsonPath("$.error_messages[0].code") { value("User Not Found") }
             }
 
         }
@@ -246,7 +276,7 @@ class UserControllerTest {
         ])
         @DisplayName("GIVEN: invalid nick; WHEN: Put /users/{id}; THEN: return status 400 and error_message Invalid Payload")
         fun invalidNickPayloadTest(nick: String) {
-            val updatePayload = userMock.createUserPayload().copy(nick = nick)
+            val updatePayload = userMock.createUserRequest().copy(nick = nick)
             val id: String = UUID.randomUUID().toString()
 
             mockMvc.put("/$uri/{id}", id)
@@ -257,7 +287,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Invalid Payload") }
+                jsonPath("$.error_messages[0].code") { value("Invalid Payload") }
             }
         }
 
@@ -271,7 +301,7 @@ class UserControllerTest {
         ])
         @DisplayName("GIVEN: invalid name; WHEN: Put /users/{id}; THEN: return status 400 and error_message Invalid Payload")
         fun invalidNamePayloadTest(name: String) {
-            val updatePayload = userMock.createUserPayload().copy(name = name)
+            val updatePayload = userMock.createUserRequest().copy(name = name)
             val id: String = UUID.randomUUID().toString()
 
             mockMvc.put("/$uri/{id}", id)
@@ -282,30 +312,30 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Invalid Payload") }
+                jsonPath("$.error_messages[0].code") { value("Invalid Payload") }
             }
         }
 
         @Test
-        @DisplayName("GIVEN: existing name; WHEN: Put /users/{id}; THEN: return status 400 and error_message Exclusive Data Restriction")
+        @DisplayName("GIVEN: existing name; WHEN: Put /users/{id}; THEN: return status 400 and error message code Exclusive Data Restriction")
         fun existingNamePayloadTest() {
-            val payloadUserOne = userMock.createUserPayload()
+            val payloadUserOne = userMock.createUserRequest()
             mockMvc.perform(
                 post("/$uri")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(payloadUserOne))
                 )
 
-            val payloadUserTwo = userMock.createUserPayload()
+            val payloadUserTwo = userMock.createUserRequest()
             val consult = mockMvc.perform(
                 post("/$uri")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(payloadUserTwo))
                 ).andReturn().response.contentAsString
 
-            payloadUserTwo.id = JsonPath.parse(consult).read("$.id")
+            val userTwoId = JsonPath.parse(consult).read<String>("$.id")
 
-            mockMvc.put("/$uri/{id}", payloadUserTwo.id)
+            mockMvc.put("/$uri/{id}", userTwoId)
             {
                 content = objectMapper.writeValueAsString(payloadUserTwo.copy(name = payloadUserOne.name))
                 contentType = MediaType.APPLICATION_JSON
@@ -313,7 +343,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Exclusive Data Restriction") }
+                jsonPath("$.error_messages[0].code") { value("Data Integrity Violation") }
             }
         }
 
@@ -327,9 +357,9 @@ class UserControllerTest {
             "09:40:01",
             "1981-10-17 09:40:01",
         ])
-        @DisplayName("GIVEN: invalid birth_date; WHEN: Put /users/{id}; THEN: return status 400 and error_message Http Message Not Readable")
+        @DisplayName("GIVEN: invalid birthDate; WHEN: Put /users/{id}; THEN: return status 400 and error message code Http Message Not Readable")
         fun invalidBirthDatePayloadTest(birthDate: String) {
-            val updatePayload = userMock.createUserPayload().copy(birth_date = birthDate)
+            val updatePayload = userMock.createUserPayload().copy(birthDate = birthDate)
             val id: String = UUID.randomUUID().toString()
 
             mockMvc.put("/$uri/{id}", id)
@@ -340,7 +370,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Http Message Not Readable") }
+                jsonPath("$.error_messages[0].code") { value("Http Message Not Readable") }
             }
         }
 
@@ -350,10 +380,15 @@ class UserControllerTest {
             " ",
             "That'sStringContainMoreThan32Characters"
         ])
-        @DisplayName("GIVEN: invalid stack item; WHEN: Put /users/{id}; THEN: return status 400 and error_message Invalid Payload")
+        @DisplayName("GIVEN: invalid stack item; WHEN: Put /users/{id}; THEN: return status 400 and error message code Invalid Payload")
         fun invalidStackItemPayloadTest(stackItem: String) {
-            val stack: List<String> = listOf(stackItem)
-            val updatePayload = userMock.createUserPayload().copy(stack = stack)
+            val stacks: MutableSet<StackRequest> = mutableSetOf(
+                StackRequest(
+                    stack = stackItem,
+                    score = userMock.getRandomInt(userMock.maxLevel)
+                )
+            )
+            val updatePayload = userMock.createUserRequest().copy(stack = stacks)
             val id: String = UUID.randomUUID().toString()
 
             mockMvc.put("/$uri/{id}", id)
@@ -364,7 +399,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Invalid Payload") }
+                jsonPath("$.error_messages[0].code") { value("Invalid Payload") }
             }
         }
     }
@@ -374,23 +409,31 @@ class UserControllerTest {
         @Test
         @DisplayName("GIVEN: existing User and valid ID; WHEN: Get /users/{id}; THEN: return status 200 and User data")
         fun validUserTest() {
-            val payload = userMock.createUserPayload()
+            val payload = userMock.createUserRequest()
             val consult = mockMvc.perform(
                 post("/$uri")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(payload))
             ).andReturn().response.contentAsString
-            payload.id = JsonPath.parse(consult).read("$.id")
+            val payloadId = JsonPath.parse(consult).read<String>("$.id")
 
-            mockMvc.get("/$uri/{id}", payload.id).
+            /*
+            * TODO Solução Preguiçosa. Melhorar Isso!
+            */
+            mockMvc.get("/$uri/{id}", payloadId).
             andExpectAll {
                 status { isOk() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.id") { value(payload.id) }
+                jsonPath("$.id") { value(payloadId) }
                 jsonPath("$.name") {value(payload.name)}
                 jsonPath("$.nick") {value(payload.nick)}
-                jsonPath("$.birth_date") {value(payload.birth_date)}
-                jsonPath("$.stack") {value(payload.stack)}
+                jsonPath("$.birth_date") {value(payload.birthDate.toString())}
+                jsonPath("$.stack[*].stack") {value(
+                    containsInAnyOrder(
+                        payload.stack!!.elementAt(0).stack,
+                        payload.stack!!.elementAt(1).stack
+                    )
+                )}
             }
 
         }
@@ -403,7 +446,7 @@ class UserControllerTest {
             mockMvc.get("/$uri/{id}", id.toString()) { }
                 .andExpectAll {
                     status { isNotFound() }
-                    jsonPath("$.error_message") { value("User Not Found") }
+                    jsonPath("$.error_messages[0].code") { value("User Not Found") }
                 }
         }
 
@@ -414,7 +457,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isNotFound() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("No Resource Found") }
+                jsonPath("$.error_messages[0].code") { value("No Resource Found") }
             }
         }
 
@@ -425,7 +468,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Missing Path Variable") }
+                jsonPath("$.error_messages[0].code") { value("Missing Path Variable") }
             }
         }
 
@@ -441,7 +484,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Method Argument Type Mismatch") }
+                jsonPath("$.error_messages[0].code") { value("Method Argument Type Mismatch") }
             }
         }
     }
@@ -449,52 +492,124 @@ class UserControllerTest {
     @Nested
     inner class FindUsers {
         @Test
-        @DisplayName("GIVEN: db with 55 users; WHEN: Get /users; THEN: return status 200, page_number=0, page_size=50, total_elements=55 and total_pages=2")
+        @DisplayName("GIVEN: db with 16 users; WHEN: Get /users; THEN: return status 1st 206, page=0, page_size=15, total=16")
         fun validDefaultConsultTest() {
-            for (i in 1..55) {
-                val payload = userMock.createUserPayload()
-                mockMvc.perform(
-                    post("/$uri")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload))
-                )
+            for (i in 1..16) {
+                val newUser = userMock.createUserEntity()
+                userRepository.save(newUser)
             }
 
             mockMvc.get("/$uri") {}
                 .andExpectAll {
-                    status { isOk() }
-                    jsonPath("$.pageable.page_number") {value( "0")}
-                    jsonPath("$.pageable.page_size") {value( "50")}
-                    jsonPath("$.total_elements") {value( "55")}
-                    jsonPath("$.total_pages") {value( "2")}
+                    status { isPartialContent() }
+                    jsonPath("$.page") {value( "0")}
+                    jsonPath("$.page_size") {value( "15")}
+                    jsonPath("$.total") {value( "16")}
                 }
         }
 
         @Test
-        @DisplayName("GIVEN: db with 10 users; WHEN: Get /users?page={0..9}&size=1; THEN: return status 200 and page with 1 Item (10x)")
-        fun validPaginatedConsultTest() {
-            val pageSize = 1
+        @DisplayName("GIVEN: db with 31 users; WHEN: Get /users?page=1; THEN: return status 1st 206, page=1, page_size=15, total=31")
+        fun validPartialConsultTest() {
+            for (i in 1..31) {
+                val newUser = userMock.createUserEntity()
+                userRepository.save(newUser)
+            }
+
+            mockMvc.get("/$uri") {
+                param("page", "1")
+            }
+                .andExpectAll {
+                    status { isPartialContent() }
+                    jsonPath("$.page") {value( "1")}
+                    jsonPath("$.page_size") {value( "15")}
+                    jsonPath("$.total") {value( "31")}
+                }
+        }
+
+        @Test
+        @DisplayName("GIVEN: db with 10 users; WHEN: Get /users?page=1&page_size=5; THEN: return status 200 and last page")
+        fun validLastPageConsultTest() {
+            for (i in 0.. 9) {
+                val newUser = userMock.createUserEntity()
+                userRepository.save(newUser)
+            }
+
+            mockMvc.get("/$uri") {
+                param("page", "1")
+                param("page_size", "5")
+            }
+                .andExpectAll {
+                    status { isOk() }
+                    jsonPath("$.page") {value( "1")}
+                    jsonPath("$.page_size") {value( "5")}
+                    jsonPath("$.total") {value( "10")}
+                }
+        }
+
+        @Test
+        @DisplayName("GIVEN: db with 10 users; WHEN: Get /users?sort=name; THEN: return status 200 and ASC Sorted Items by name")
+        fun validAscSortConsultTest() {
+            var names: List<String> = ArrayList()
 
             for (i in 0.. 9) {
-                val payload = userMock.createUserPayload()
-
-                mockMvc.perform(
-                    post("/$uri")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload))
-                )
-
-                mockMvc.get("/$uri?page=$i&size=$pageSize") {}
-                    .andExpectAll {
-                        status { isOk() }
-                        jsonPath("$.pageable.page_number") {value( "$i")}
-                        jsonPath("$.pageable.page_size") {value( "$pageSize")}
-                        jsonPath("$.pageable.offset") {value( "${i * pageSize}")}
-                        jsonPath("$.total_elements") {value( "${i + 1}")}
-                        jsonPath("$.total_pages") {value( "${(i + 1) / pageSize}")}
-                        jsonPath("$.last") {value( "true")}
-                    }
+                val newUser = userMock.createUserEntity()
+                names.addLast(newUser.name)
+                userRepository.save(newUser)
             }
+
+            /*
+            * TODO Solução Preguiçosa. Melhorar Isso!
+            */
+            names = names.sorted()
+
+            mockMvc.get("/$uri") {
+                param("sort", "name")
+            }
+                .andExpectAll {
+                    status { isOk() }
+                    jsonPath("$.records[0].name") {value(names[0])}
+                    jsonPath("$.records[1].name") {value(names[1])}
+                    jsonPath("$.records[2].name") {value(names[2])}
+                    jsonPath("$.records[3].name") {value(names[3])}
+                    jsonPath("$.records[4].name") {value(names[4])}
+                    jsonPath("$.records[5].name") {value(names[5])}
+                    jsonPath("$.records[6].name") {value(names[6])}
+                    jsonPath("$.records[7].name") {value(names[7])}
+                    jsonPath("$.records[8].name") {value(names[8])}
+                    jsonPath("$.records[9].name") {value(names[9])}
+                }
+        }
+
+        @Test
+        @DisplayName("GIVEN: db with 10 users; WHEN: Get /users?sort=-name; THEN: return status 200 and DESC Sorted Items by name")
+        fun validDescSortConsultTest() {
+            var names: List<String> = ArrayList()
+
+            for (i in 0.. 9) {
+                val newUser = userMock.createUserEntity()
+                names.addLast(newUser.name)
+                userRepository.save(newUser)
+            }
+
+            names = names.sortedDescending()
+
+            mockMvc.get("/$uri") {
+                param("sort", "-name")
+            }
+                .andExpectAll {
+                    status { isOk() }
+                    jsonPath("$.records[0].name") {value(names[0])}
+                    jsonPath("$.records[1].name") {value(names[1])}
+                    jsonPath("$.records[2].name") {value(names[2])}
+                    jsonPath("$.records[3].name") {value(names[3])}
+                    jsonPath("$.records[4].name") {value(names[4])}
+                    jsonPath("$.records[5].name") {value(names[5])}
+                    jsonPath("$.records[6].name") {value(names[6])}
+                    jsonPath("$.records[7].name") {value(names[7])}
+                    jsonPath("$.records[8].name") {value(names[8])}
+                    jsonPath("$.records[9].name") {value(names[9])}
+                }
         }
 
     }
@@ -505,20 +620,20 @@ class UserControllerTest {
         @Test
         @DisplayName("GIVEN: existing User and valid ID; WHEN: Delete /users/{id}; THEN: return status 204 and remove user")
         fun validUserTest() {
-            val payload = userMock.createUserPayload()
+            val payload = userMock.createUserRequest()
             val consult = mockMvc.perform(
                 post("/$uri")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(payload))
             ).andReturn().response.contentAsString
-            payload.id = JsonPath.parse(consult).read("$.id")
+            val payloadId = JsonPath.parse(consult).read<String>("$.id")
 
-            mockMvc.delete("/$uri/{id}", payload.id).
+            mockMvc.delete("/$uri/{id}", payloadId).
             andExpectAll {
                 status { isNoContent() }
             }
 
-            mockMvc.get("/$uri/{id}", payload.id).
+            mockMvc.get("/$uri/{id}", payloadId).
             andExpectAll {
                 status { isNotFound() }
             }
@@ -533,7 +648,7 @@ class UserControllerTest {
             mockMvc.delete("/$uri/{id}", id.toString()) { }
                 .andExpectAll {
                     status { isNotFound() }
-                    jsonPath("$.error_message") { value("User Not Found") }
+                    jsonPath("$.error_messages[0].code") { value("User Not Found") }
                 }
         }
 
@@ -544,7 +659,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isNotFound() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("No Resource Found") }
+                jsonPath("$.error_messages[0].code") { value("No Resource Found") }
             }
         }
 
@@ -555,7 +670,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Missing Path Variable") }
+                jsonPath("$.error_messages[0].code") { value("Missing Path Variable") }
             }
         }
 
@@ -571,7 +686,7 @@ class UserControllerTest {
             andExpectAll {
                 status { isBadRequest() }
                 content { contentType(MediaType.APPLICATION_JSON) }
-                jsonPath("$.error_message") { value("Method Argument Type Mismatch") }
+                jsonPath("$.error_messages[0].code") { value("Method Argument Type Mismatch") }
             }
         }
     }

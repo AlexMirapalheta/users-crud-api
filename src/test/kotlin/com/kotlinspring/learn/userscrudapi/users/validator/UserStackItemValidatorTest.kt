@@ -1,5 +1,6 @@
 package com.kotlinspring.learn.userscrudapi.users.validator
 
+import com.kotlinspring.learn.userscrudapi.users.dto.StackRequest
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 
@@ -13,7 +14,12 @@ class UserStackItemValidatorTest {
         @Test
         @DisplayName("GIVEN: valid String (1<=size<=32) stack items list; WHEN: checked by UserStackItemValidator.isValid; THEN: return true")
         fun validStringTest() {
-            val stackList: List<String> = listOf("NodeJS", "kotlin", "SpringBoot", "That'sStringContains32Characters", "R")
+            val stackList: MutableSet<StackRequest> = mutableSetOf()
+            stackList.add(StackRequest(stack = "NodeJS", score = 70))
+            stackList.add(StackRequest(stack = "SpringBoot", score = 20))
+            stackList.add(StackRequest(stack = "That'sStringContains32Characters", score = 100))
+            stackList.add(StackRequest(stack = "R", score = 1))
+
             val result: Boolean = validator.isValid(stackList, null)
             assertTrue(result)
         }
@@ -28,7 +34,7 @@ class UserStackItemValidatorTest {
         @Test
         @DisplayName("GIVEN: invalid (empty) stack item list ; WHEN: checked by UserStackItemValidator.isValid; THEN: return false")
         fun invalidEmptyTest() {
-            val stackList: List<String> = listOf("")
+            val stackList: MutableSet<StackRequest> = mutableSetOf()
             val result: Boolean = validator.isValid(stackList, null)
             assertFalse(result)
         }
@@ -36,7 +42,9 @@ class UserStackItemValidatorTest {
         @Test
         @DisplayName("GIVEN: invalid (blank) stack item list; WHEN: checked by UserStackItemValidator.isValid; THEN: return false")
         fun invalidBlankTest() {
-            val stackList: List<String> = listOf(" ")
+            val stackList: MutableSet<StackRequest> = mutableSetOf()
+            stackList.add(StackRequest(stack = " ", score = 100))
+
             val result: Boolean = validator.isValid(stackList, null)
             assertFalse(result)
         }
@@ -44,7 +52,9 @@ class UserStackItemValidatorTest {
         @Test
         @DisplayName("GIVEN: invalid String (size>32) stack item list; WHEN: checked by UserStackItemValidator.isValid; THEN: return false")
         fun invalidStringTest() {
-            val stackList: List<String> = listOf("That'sStringContainMoreThan32Characters")
+            val stackList: MutableSet<StackRequest> = mutableSetOf()
+            stackList.add(StackRequest(stack = "That'sStringContainMoreThan32Characters", score = 100))
+
             val result: Boolean = validator.isValid(stackList, null)
             assertFalse(result)
         }
