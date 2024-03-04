@@ -6,11 +6,8 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.springframework.format.annotation.DateTimeFormat
 import java.time.LocalDateTime
-import java.util.UUID
 
-data class UserDTO (
-    val id: UUID ? = null,
-
+data class UserRequest (
     @JsonProperty(required = false)
     @field:Size(min = 1, max = 32, message = "Nickname should have min=1 and max=32 characters")
     val nick: String ?,
@@ -26,5 +23,5 @@ data class UserDTO (
 
     @JsonProperty(required = false)
     @field:UserStackItem
-    val stack: List<String> ? = null
+    val stack: MutableSet<StackRequest> ? = mutableSetOf()
 )
