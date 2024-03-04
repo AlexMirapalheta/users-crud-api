@@ -6,6 +6,8 @@ CREATE TABLE users (
 );
 
 CREATE TABLE user_stack (
+    id RAW(16) NOT NULL PRIMARY KEY,
     stack VARCHAR2(32 CHAR),
+    score INTEGER,
     user_id RAW(16) NOT NULL CONSTRAINT fk_users REFERENCES users
 );
