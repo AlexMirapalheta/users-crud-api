@@ -1,6 +1,7 @@
 package com.kotlinspring.learn.userscrudapi.users.controller
 
 import com.kotlinspring.learn.userscrudapi.users.dto.FindUsersResponse
+import com.kotlinspring.learn.userscrudapi.users.dto.StackResponse
 import com.kotlinspring.learn.userscrudapi.users.dto.UserRequest
 import com.kotlinspring.learn.userscrudapi.users.dto.UserResponse
 import com.kotlinspring.learn.userscrudapi.users.entity.User
@@ -29,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 class UserController {
 
     @Autowired
-    private lateinit var service: UserService
+    private lateinit var userService: UserService
 
     private val mapper: UserMapper = UserMapper()
 
@@ -37,7 +38,7 @@ class UserController {
     fun findById(
             @Valid @PathVariable(value = "id") id: UUID
     ): UserResponse {
-        return mapper.parseEntityToResponse(service.findById(id))
+        return mapper.parseEntityToResponse(userService.findById(id))
     }
 
     @GetMapping
@@ -46,7 +47,7 @@ class UserController {
             @Valid @RequestParam(value = "page_size", defaultValue = "15") size: Int,
             @Valid @RequestParam(value = "sort", defaultValue = "id") sort: String
     ): ResponseEntity<FindUsersResponse<UserResponse>> {
-        val usersPage: Page<User> = service.find(page, size, sort)
+        val usersPage: Page<User> = userService.find(page, size, sort)
         val responseData = FindUsersResponse(
             records = usersPage.content.map { it: User -> mapper.parseEntityToResponse(it) },
             page = usersPage.pageable.pageNumber,
@@ -64,7 +65,7 @@ class UserController {
     fun create(
             @Valid @RequestBody userRequest: UserRequest
     ): UserResponse {
-        return mapper.parseEntityToResponse(service.create(userRequest))
+        return mapper.parseEntityToResponse(userService.create(userRequest))
     }
 
     @PutMapping("/{id}")
@@ -73,7 +74,7 @@ class UserController {
         @Valid @RequestBody userRequest: UserRequest,
         @Valid @PathVariable(value = "id") id: UUID
     ): UserResponse {
-        return mapper.parseEntityToResponse(service.update(id, userRequest))
+        return mapper.parseEntityToResponse(userService.update(id, userRequest))
     }
 
     @DeleteMapping("/{id}")
@@ -82,6 +83,13 @@ class UserController {
     fun delete(
             @Valid @PathVariable(value = "id") id: UUID
     ) {
-        service.delete(id)
+        userService.delete(id)
+    }
+
+    @GetMapping("/{id}/stacks")
+    fun findStacksByUserId(
+        @Valid @PathVariable(value = "id") id: UUID
+    ): MutableSet<StackResponse> {
+        return findById(id).stack
     }
 }
