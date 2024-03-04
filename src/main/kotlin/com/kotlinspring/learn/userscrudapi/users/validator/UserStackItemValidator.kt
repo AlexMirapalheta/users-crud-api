@@ -20,7 +20,7 @@ annotation class UserStackItem (
 class UserStackItemValidator : ConstraintValidator<UserStackItem, MutableSet<StackRequest>> {
 
     private val maxSize: Int = 32
-    private val maxScore: Int = 32
+    private val maxScore: Int = 100
 
     override fun isValid(stack: MutableSet<StackRequest>?, p1: ConstraintValidatorContext?): Boolean {
         return stack == null || (
