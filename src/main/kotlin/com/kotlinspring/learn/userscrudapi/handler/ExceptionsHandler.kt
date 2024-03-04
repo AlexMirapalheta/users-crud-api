@@ -1,5 +1,6 @@
 package com.kotlinspring.learn.userscrudapi.handler
 
+import com.kotlinspring.learn.userscrudapi.exception.ErrorMessage
 import com.kotlinspring.learn.userscrudapi.exception.ExceptionResponse
 import com.kotlinspring.learn.userscrudapi.users.exception.UserNotFoundException
 import jakarta.servlet.http.HttpServletRequest
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.resource.NoResourceFoundException
-import java.time.LocalDateTime
 
 @ControllerAdvice
 class ExceptionsHandler {
@@ -29,12 +29,13 @@ class ExceptionsHandler {
         ex: Exception, request: WebRequest
     ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
-            LocalDateTime.now(),
-            ex.message,
-            request.getDescription(false)
+            listOf(ErrorMessage(
+                code = "Internal Server Error",
+                description = "Error caused by internal server trouble: ${ex.message}"
+            ))
         )
 
-        logger.info("handleAllExceptions [${HttpStatus.INTERNAL_SERVER_ERROR}] $ex")
+        logger.error("handleAllExceptions [${HttpStatus.INTERNAL_SERVER_ERROR}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.INTERNAL_SERVER_ERROR)
     }
@@ -44,12 +45,13 @@ class ExceptionsHandler {
         ex: Exception, request: WebRequest
     ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
-            LocalDateTime.now(),
-            ex.message,
-            request.getDescription(false)
+            listOf(ErrorMessage(
+                code = "User Not Found",
+                description = "Requested user could not be found"
+            ))
         )
 
-        logger.info("handleUserNotFoundExceptions [${HttpStatus.NOT_FOUND}] $ex")
+        logger.error("handleUserNotFoundExceptions [${HttpStatus.NOT_FOUND}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.NOT_FOUND)
     }
@@ -59,12 +61,13 @@ class ExceptionsHandler {
         ex: MethodArgumentTypeMismatchException, request: WebRequest
     ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
-            LocalDateTime.now(),
-            "Method Argument Type Mismatch",
-            ex.message ?: request.getDescription(false)
+            listOf(ErrorMessage(
+                code = "Method Argument Type Mismatch",
+                description = "Failed to convert '${ex.propertyName}' property value to required type"
+            ))
         )
 
-        logger.info("MethodArgumentTypeMismatchException [${HttpStatus.BAD_REQUEST}] $ex")
+        logger.error("MethodArgumentTypeMismatchException [${HttpStatus.BAD_REQUEST}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.BAD_REQUEST)
     }
@@ -73,13 +76,17 @@ class ExceptionsHandler {
     fun handleMethodArgumentNotValidException(
         req: HttpServletRequest, ex: MethodArgumentNotValidException
     ): ResponseEntity<ExceptionResponse> {
-        val exceptionResponse = ExceptionResponse(
-                LocalDateTime.now(),
-                "Invalid Payload",
-                (ex.bindingResult.allErrors.map { it.defaultMessage ?: "" }).reduce { acc, s -> "$acc; $s" }
-        )
+        val errorMessages: List<ErrorMessage> = ArrayList()
+        for (error in ex.bindingResult.allErrors) {
+            errorMessages.addLast(
+                ErrorMessage(
+                    code = "Invalid Payload",
+                    description = error.defaultMessage ?: "Invalid payload attribute"
+            ))
+        }
+        val exceptionResponse = ExceptionResponse(errorMessages)
 
-        logger.info("handleMethodArgumentNotValidException [${HttpStatus.BAD_REQUEST}] $ex")
+        logger.error("handleMethodArgumentNotValidException [${HttpStatus.BAD_REQUEST}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.BAD_REQUEST)
     }
@@ -89,12 +96,13 @@ class ExceptionsHandler {
         ex: DataIntegrityViolationException, request: WebRequest
     ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
-            LocalDateTime.now(),
-            "Exclusive Data Restriction",
-            "Could Not Execute Statement. Check Provided Payload"
+            listOf(ErrorMessage(
+                code = "Data Integrity Violation",
+                description = "Exclusive Data Restriction: could not execute statement"
+            ))
         )
 
-        logger.info("handleDataIntegrityViolationException [${HttpStatus.BAD_REQUEST}] $ex")
+        logger.error("handleDataIntegrityViolationException [${HttpStatus.BAD_REQUEST}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.BAD_REQUEST)
     }
@@ -104,12 +112,13 @@ class ExceptionsHandler {
         ex: HttpMessageNotReadableException, request: WebRequest
     ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
-            LocalDateTime.now(),
-            "Http Message Not Readable",
-            ex.message ?: request.getDescription(false)
+            listOf(ErrorMessage(
+                code = "Http Message Not Readable",
+                description = "JSON parse error: instantiation of value failed for some property due to missing (therefore NULL) value for creator parameter which is a non-nullable type"
+            ))
         )
 
-        logger.info("HttpMessageNotReadableException [${HttpStatus.BAD_REQUEST}] $ex")
+        logger.error("HttpMessageNotReadableException [${HttpStatus.BAD_REQUEST}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.BAD_REQUEST)
     }
@@ -119,12 +128,13 @@ class ExceptionsHandler {
         ex: MissingPathVariableException, request: WebRequest
     ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
-            LocalDateTime.now(),
-            "Missing Path Variable",
-            ex.message
+            listOf(ErrorMessage(
+                code = "Missing Path Variable",
+                description = ex.message
+            ))
         )
 
-        logger.info("MissingPathVariableException [${HttpStatus.BAD_REQUEST}] $ex")
+        logger.error("MissingPathVariableException [${HttpStatus.BAD_REQUEST}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.BAD_REQUEST)
     }
@@ -134,12 +144,13 @@ class ExceptionsHandler {
         ex: NoResourceFoundException, request: WebRequest
     ): ResponseEntity<ExceptionResponse> {
         val exceptionResponse = ExceptionResponse(
-            LocalDateTime.now(),
-            "No Resource Found",
-            ex.message ?: request.getDescription(false)
+            listOf(ErrorMessage(
+                code = "No Resource Found",
+                description = "${ex.message}"
+            ))
         )
 
-        logger.info("MissingPathVariableException [${HttpStatus.NOT_FOUND}] $ex")
+        logger.error("NoResourceFoundException [${HttpStatus.NOT_FOUND}] $ex")
 
         return ResponseEntity<ExceptionResponse>(exceptionResponse, HttpStatus.NOT_FOUND)
     }
