@@ -1,14 +1,15 @@
 package com.kotlinspring.learn.userscrudapi.users.service
 
-import com.kotlinspring.learn.userscrudapi.users.dto.UserDTO
+import com.kotlinspring.learn.userscrudapi.users.dto.UserRequest
+import com.kotlinspring.learn.userscrudapi.users.entity.Stack
 import com.kotlinspring.learn.userscrudapi.users.entity.User
 import com.kotlinspring.learn.userscrudapi.users.exception.UserNotFoundException
-import com.kotlinspring.learn.userscrudapi.users.mapper.UserMapper
+import com.kotlinspring.learn.userscrudapi.users.helper.SortHelper
 import com.kotlinspring.learn.userscrudapi.users.repository.UserRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
-import java.util.*
+import java.util.UUID
 import java.util.logging.Logger
 
 @Service
@@ -16,51 +17,69 @@ class UserService(
     private var repository: UserRepository
 ) {
 
-    private var mapper: UserMapper = UserMapper()
+    private var sortHelper: SortHelper = SortHelper()
     private val logger = Logger.getLogger(UserService::class.java.name)
 
-    fun find(page: Int = 0, size: Int = 50): Page<UserDTO> {
+    fun find(page: Int, size: Int, sort: String): Page<User> {
         logger.info("Finding All Users")
 
-        val paging: PageRequest = PageRequest.of(page, size)
-        val users: Page<UserDTO> = repository.findAll(paging).map { user: User -> UserDTO(
-                id = user.id,
-                name = user.fullName,
-                nick = user.nick,
-                birthDate = user.birthDate,
-                stack = user.stack
-        )}
-        return users
+        val paging: PageRequest = PageRequest.of(page, size, sortHelper.getSortByString(sort))
+        return repository.findAll(paging)
     }
 
-    fun findById(id: UUID): UserDTO {
+    fun findById(id: UUID): User {
         logger.info("Finding User By ID : $id")
 
-        val user: User = repository.findById(id).orElseThrow { UserNotFoundException() }
-        return mapper.parseToDTO(user)
+        return repository.findById(id).orElseThrow { UserNotFoundException() }
     }
 
-    fun create(user: UserDTO): UserDTO {
-        logger.info("Creating $user")
+    fun create(userRequest: UserRequest): User {
+        logger.info("Creating $userRequest")
 
-        val entity: User = repository.save(mapper.parseToEntity(user))
-        return mapper.parseToDTO(entity)
+        val newUser = User(
+            nick = userRequest.nick,
+            name = userRequest.name,
+            birthDate = userRequest.birthDate
+        )
+        userRequest.stack?.forEach {
+            newUser.stack.add(
+                Stack(
+                    stack = it.stack,
+                    score = it.score,
+                    user = newUser
+                )
+            )
+        }
+
+        return repository.save(newUser)
     }
 
-    fun update(id: UUID, userDto: UserDTO): UserDTO {
-        logger.info("Updating $userDto")
+    fun update(id: UUID, userRequest: UserRequest): User {
+        logger.info("Updating $id - $userRequest")
 
         val user: User = repository.findById(id).orElseThrow { UserNotFoundException() }
-        val userUpdated: User = repository.save(
+
+        val stackUpdated: MutableSet<Stack> = mutableSetOf()
+        userRequest.stack?.forEach {
+            val existStack: Stack ? = user.stack.find { exist: Stack -> exist.stack == it.stack }
+            stackUpdated.add(
+                Stack(
+                    existStack?.id,
+                    it.stack,
+                    it.score,
+                    user
+                )
+            )
+        }
+
+        return repository.save(
             user.copy(
-                nick = userDto.nick,
-                fullName = userDto.name,
-                birthDate = userDto.birthDate,
-                stack = userDto.stack,
+                nick = userRequest.nick,
+                name = userRequest.name,
+                birthDate = userRequest.birthDate,
+                stack = stackUpdated
             )
         )
-
-        return mapper.parseToDTO(userUpdated)
     }
 
     fun delete(id: UUID) {
